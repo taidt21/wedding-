@@ -149,8 +149,8 @@ section {
 }
 
 .hero {
-  /* background-image: url("https://assets.cinelove.me/uploads/80804c06-219d-4fac-a1c9-0c27ff69dd1f/e80a310b-849f-4280-9516-8d0c53c79903.jpg"); */
-  background-image: url("images/hero-1.png");
+  background-image: url("https://assets.cinelove.me/uploads/80804c06-219d-4fac-a1c9-0c27ff69dd1f/e80a310b-849f-4280-9516-8d0c53c79903.jpg");
+  /* background-image: url("images/hero-1.png"); */
   background-position: top center;
   background-size: cover;
   height: 584px;
@@ -354,8 +354,8 @@ section {
   justify-content: center;
   align-items: end;
   margin-top: 20px;
-  /* background-image: url("https://assets.cinelove.me/uploads/80804c06-219d-4fac-a1c9-0c27ff69dd1f/f46a6d17-65de-4fe5-b761-f72691a6c5f4.jpg"); */
-  background-image: url("images/bg-calendar.png");
+  background-image: url("https://assets.cinelove.me/uploads/80804c06-219d-4fac-a1c9-0c27ff69dd1f/f46a6d17-65de-4fe5-b761-f72691a6c5f4.jpg");
+  /* background-image: url("images/bg-calendar.png"); */
   background-size: cover;
   background-position: top center;
   aspect-ratio: 257/386;
@@ -773,8 +773,8 @@ section {
 .container-thanks{
   width: 100%;
   aspect-ratio: 375/563 ;
-  /* background-image: url("https://assets.cinelove.me/uploads/80804c06-219d-4fac-a1c9-0c27ff69dd1f/ef4fe624-8736-432c-bda9-c44e716e17c7.jpg"); */
-  background-image: url("images/thanks.png");
+  background-image: url("https://assets.cinelove.me/uploads/80804c06-219d-4fac-a1c9-0c27ff69dd1f/ef4fe624-8736-432c-bda9-c44e716e17c7.jpg");
+  /* background-image: url("images/thanks.png"); */
   background-size: cover;
   background-position: center center;
   background-size: cover;
