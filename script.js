@@ -56,16 +56,17 @@
     calendar: document.querySelector(SELECTORS.calendar)
   };
 
-  const state = {
-    audioAutoplayTried: false,
-    interactionFallbackBound: false,
-    isAutoScrolling: false,
-    autoScrollFrameId: null,
-    lastAnimationFrameTime: 0,
-    resizeTimer: null,
-    countdownTimerId: null,
-    userGestureHandlers: []
-  };
+const state = {
+  audioAutoplayTried: false,
+  interactionFallbackBound: false,
+  isAutoScrolling: false,
+  autoScrollFrameId: null,
+  lastAnimationFrameTime: 0,
+  autoScrollTop: 0,
+  resizeTimer: null,
+  countdownTimerId: null,
+  userGestureHandlers: []
+};
 
   const backgroundAudio = config.audioSrc ? new Audio(config.audioSrc) : null;
 
@@ -171,7 +172,25 @@
       bindFirstInteractionAudioFallback();
     }
   }
+function getScrollElement() {
+  return document.scrollingElement || document.documentElement || document.body;
+}
 
+function getCurrentScrollTop() {
+  const scrollElement = getScrollElement();
+  return scrollElement ? scrollElement.scrollTop : window.scrollY || 0;
+}
+
+function setCurrentScrollTop(top) {
+  const scrollElement = getScrollElement();
+  const safeTop = Math.max(0, top);
+
+  if (scrollElement) {
+    scrollElement.scrollTop = safeTop;
+  }
+
+  window.scrollTo(0, safeTop);
+}
   function getMaxScrollableTop() {
     return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
   }
@@ -188,44 +207,48 @@
     setAutoScrollButtonVisible(showButton);
   }
 
-  function autoScrollStep(timestamp) {
-    if (!state.isAutoScrolling) return;
+function autoScrollStep(timestamp) {
+  if (!state.isAutoScrolling) return;
 
-    if (!state.lastAnimationFrameTime) {
-      state.lastAnimationFrameTime = timestamp;
-    }
-
-    const delta = timestamp - state.lastAnimationFrameTime;
+  if (!state.lastAnimationFrameTime) {
     state.lastAnimationFrameTime = timestamp;
-
-    const nextTop = window.scrollY + delta * config.autoScrollSpeed;
-    const maxTop = getMaxScrollableTop();
-
-    if (nextTop >= maxTop) {
-      window.scrollTo({ top: maxTop, behavior: 'auto' });
-      stopAutoScroll(true);
-      return;
-    }
-
-    window.scrollTo({ top: nextTop, behavior: 'auto' });
-    state.autoScrollFrameId = requestAnimationFrame(autoScrollStep);
   }
 
-  async function startAutoScroll({ ensureAudio = false } = {}) {
-    if (ensureAudio && backgroundAudio?.paused) {
-      const played = await playBackgroundAudio();
-      if (!played) {
-        bindFirstInteractionAudioFallback();
-      }
-    }
+  const delta = timestamp - state.lastAnimationFrameTime;
+  state.lastAnimationFrameTime = timestamp;
 
-    if (state.isAutoScrolling) return;
+  const maxTop = getMaxScrollableTop();
+  state.autoScrollTop += delta * config.autoScrollSpeed;
 
-    state.isAutoScrolling = true;
-    state.lastAnimationFrameTime = 0;
-    setAutoScrollButtonVisible(false);
-    state.autoScrollFrameId = requestAnimationFrame(autoScrollStep);
+  const nextTop = Math.min(state.autoScrollTop, maxTop);
+  setCurrentScrollTop(nextTop);
+
+  if (nextTop >= maxTop) {
+    stopAutoScroll(true);
+    return;
   }
+
+  state.autoScrollFrameId = requestAnimationFrame(autoScrollStep);
+}
+
+async function startAutoScroll({ ensureAudio = false } = {}) {
+  if (ensureAudio && backgroundAudio?.paused) {
+    const played = await playBackgroundAudio();
+    if (!played) {
+      bindFirstInteractionAudioFallback();
+    }
+  }
+
+  if (state.isAutoScrolling) return;
+
+  state.isAutoScrolling = true;
+  state.lastAnimationFrameTime = 0;
+  state.autoScrollTop = getCurrentScrollTop();
+
+  setAutoScrollButtonVisible(false);
+
+  state.autoScrollFrameId = requestAnimationFrame(autoScrollStep);
+}
 
   function handleManualInterruption() {
     if (!state.isAutoScrolling) return;
@@ -411,11 +434,13 @@
     revealElements.forEach((element) => observer.observe(element));
   }
 
-  async function finishLoaderSequence() {
-    await ensureAudioPlayback();
-    setAutoScrollButtonVisible(false);
+async function finishLoaderSequence() {
+  await ensureAudioPlayback();
+
+  window.setTimeout(() => {
     startAutoScroll();
-  }
+  }, 180);
+}
 
   function initLoader() {
     if (!elements.loader) {
