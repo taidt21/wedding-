@@ -45,8 +45,8 @@ button {
 @font-face {
   font-family: 'Abbassy';
   src:
-    url('font/MTD-Abbassy-Script.otf') format('woff2'),
-    url('font/Abbassy Demo.ttf') format('woff');
+    url('font/MTD-Abbassy-Script.otf') format('opentype'),
+    url('font/Abbassy Demo.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -54,9 +54,7 @@ button {
 
 @font-face {
   font-family: 'Hoatay';
-  src:
-    url('font/UVN-Hoa-Tay.ttf') format('woff2'),
-    url('font/UVN-Hoa-Tay.ttf') format('woff');
+  src: url('font/UVN-Hoa-Tay.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -64,9 +62,7 @@ button {
 
 @font-face {
   font-family: 'note';
-  src:
-    url('font/1FTV-VIP-Soul-Note-Display.otf') format('woff2'),
-    url('font/1FTV-VIP-Soul-Note-Display.otf') format('woff');
+  src: url('font/1FTV-VIP-Soul-Note-Display.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -74,9 +70,7 @@ button {
 
 @font-face {
   font-family: 'carlytte';
-  src:
-    url('font/1FTV-Carlytte.ttf') format('woff2'),
-    url('font/1FTV-Carlytte.ttf') format('woff');
+  src: url('font/1FTV-Carlytte.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -591,6 +585,8 @@ button {
 }
 
 .welcome-item {
+  overflow: hidden;
+  border-radius: 24px;
   -webkit-mask-box-image-source: url('https://assets.cinelove.me/resources/cropShapes/001_ecxcylqi2s.png');
   -webkit-mask-box-image-slice: 0 fill;
   mask-image: url('https://assets.cinelove.me/resources/cropShapes/001_ecxcylqi2s.png');
@@ -666,6 +662,8 @@ button {
 .calendar-box-shadow,
 .calendar-box {
   width: 75%;
+  overflow: hidden;
+  border-radius: 28px;
   -webkit-mask-box-image-source: url('https://assets.cinelove.me/resources/cropShapes/029_grhum0ffpk.png');
   -webkit-mask-box-image-slice: 0 fill;
   mask-image: url('https://assets.cinelove.me/resources/cropShapes/029_grhum0ffpk.png');
