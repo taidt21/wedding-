@@ -22,7 +22,7 @@
 
 html,
 body {
-  overflow-x: hidden;
+  /* overflow-x: hidden; */
 }
 
 body {
@@ -415,6 +415,11 @@ button {
   height: var(--floating-size);
   border-radius: 50%;
   background: transparent;
+}
+
+.auto-scroll.is-active {
+  transform: scale(1.06);
+  filter: drop-shadow(0 6px 14px rgba(121, 11, 11, 0.22));
 }
 
 .audio {

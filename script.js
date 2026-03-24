@@ -42,7 +42,7 @@
     calendarYear: parseInt(root.dataset.calendarYear || '2026', 10),
     calendarHighlightDay: parseInt(root.dataset.calendarHighlightDay || '29', 10),
     calendarWeekStart: root.dataset.calendarWeekStart || 'monday',
-    autoScrollSpeed: parseFloat(root.dataset.autoScrollSpeed || '28'),
+    autoScrollSpeed: 0.1,
     loaderMinDuration: 2200,
     loaderFadeDuration: 600
   };
@@ -104,6 +104,12 @@ const state = {
   function setAutoScrollButtonVisible(isVisible) {
     if (!elements.autoScrollButton) return;
     elements.autoScrollButton.style.display = isVisible ? 'flex' : 'none';
+  }
+
+  function syncAutoScrollButtonState() {
+    if (!elements.autoScrollButton) return;
+    elements.autoScrollButton.classList.toggle('is-active', state.isAutoScrolling);
+    elements.autoScrollButton.setAttribute('aria-pressed', state.isAutoScrolling ? 'true' : 'false');
   }
 
   async function playBackgroundAudio() {
@@ -175,33 +181,44 @@ const state = {
     }
   }
 function getScrollElement() {
-  return document.scrollingElement || document.documentElement || document.body;
+  return document.scrollingElement || document.documentElement;
 }
 
 function getCurrentScrollTop() {
-  return Math.max(
-    window.scrollY || 0,
-    document.documentElement.scrollTop || 0,
-    document.body.scrollTop || 0
-  );
+  return window.pageYOffset || window.scrollY || getScrollElement().scrollTop || 0;
 }
 
 function setCurrentScrollTop(top) {
   const safeTop = Math.max(0, Math.floor(top));
+  window.scrollTo(0, safeTop);
+}
 
-  window.scrollTo({
-    top: safeTop,
-    left: 0,
-    behavior: 'auto'
-  });
+function normalizeAutoScrollSpeed(rawValue) {
+  const parsed = Number.parseFloat(rawValue);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 64;
+  }
+
+  if (parsed <= 2) {
+    return Math.max(24, Math.round(window.innerHeight * parsed));
+  }
+
+  return Math.min(parsed, 240);
 }
 
 function updateMaxScrollableTop() {
-  state.maxScrollTop = Math.max(
-    0,
-    getScrollElement().scrollHeight - window.innerHeight
+  const scrollRoot = getScrollElement();
+  const scrollHeight = Math.max(
+    scrollRoot.scrollHeight,
+    document.documentElement.scrollHeight,
+    document.body ? document.body.scrollHeight : 0
   );
+
+  state.maxScrollTop = Math.max(0, scrollHeight - window.innerHeight);
+  config.autoScrollSpeed = normalizeAutoScrollSpeed(root.dataset.autoScrollSpeed);
 }
+
 function stopAutoScroll(showButton = true) {
   state.isAutoScrolling = false;
 
@@ -214,6 +231,7 @@ function stopAutoScroll(showButton = true) {
   state.autoScrollRemainder = 0;
   document.body.classList.remove('is-auto-scrolling');
   setAutoScrollButtonVisible(showButton);
+  syncAutoScrollButtonState();
 }
 
 function autoScrollStep(timestamp) {
@@ -225,29 +243,24 @@ function autoScrollStep(timestamp) {
     return;
   }
 
-  const delta = Math.min(timestamp - state.lastAnimationFrameTime, 32);
+  const delta = Math.min(timestamp - state.lastAnimationFrameTime, 34);
   state.lastAnimationFrameTime = timestamp;
+
+  updateMaxScrollableTop();
 
   const pixelsToMove = (delta * config.autoScrollSpeed) / 1000;
   state.autoScrollRemainder += pixelsToMove;
 
-  const wholePixels = Math.floor(state.autoScrollRemainder);
-
-  if (wholePixels <= 0) {
-    state.autoScrollFrameId = requestAnimationFrame(autoScrollStep);
-    return;
-  }
-
-  state.autoScrollRemainder -= wholePixels;
-
   const currentTop = getCurrentScrollTop();
-  const nextTop = Math.min(currentTop + wholePixels, state.maxScrollTop);
+  const nextTop = Math.min(currentTop + state.autoScrollRemainder, state.maxScrollTop);
+  const consumed = nextTop - currentTop;
 
-  if (nextTop !== currentTop) {
+  if (consumed > 0) {
+    state.autoScrollRemainder -= consumed;
     setCurrentScrollTop(nextTop);
   }
 
-  if (nextTop >= state.maxScrollTop) {
+  if (nextTop >= state.maxScrollTop - 1) {
     stopAutoScroll(true);
     return;
   }
@@ -267,13 +280,18 @@ async function startAutoScroll({ ensureAudio = false } = {}) {
 
   updateMaxScrollableTop();
 
+  if (state.maxScrollTop <= getCurrentScrollTop() + 1) {
+    return;
+  }
+
   state.isAutoScrolling = true;
   state.lastAnimationFrameTime = 0;
   state.autoScrollTop = getCurrentScrollTop();
   state.autoScrollRemainder = 0;
 
   document.body.classList.add('is-auto-scrolling');
-  setAutoScrollButtonVisible(false);
+  setAutoScrollButtonVisible(true);
+  syncAutoScrollButtonState();
 
   state.autoScrollFrameId = requestAnimationFrame(autoScrollStep);
 }
@@ -464,10 +482,13 @@ async function startAutoScroll({ ensureAudio = false } = {}) {
 
 async function finishLoaderSequence() {
   await ensureAudioPlayback();
+  syncAutoScrollButtonState();
 
-  window.setTimeout(() => {
-    startAutoScroll();
-  }, 180);
+  if (!isReducedMotionEnabled()) {
+    window.setTimeout(() => {
+      startAutoScroll();
+    }, 220);
+  }
 }
 
   function initLoader() {
@@ -476,7 +497,7 @@ async function finishLoaderSequence() {
       return;
     }
 
-    window.addEventListener('load', () => {
+    const completeLoaderFlow = () => {
       const elapsed = Date.now() - pageStartTime;
       const delay = Math.max(0, config.loaderMinDuration - elapsed);
 
@@ -488,7 +509,14 @@ async function finishLoaderSequence() {
           finishLoaderSequence();
         }, config.loaderFadeDuration);
       }, delay);
-    });
+    };
+
+    if (document.readyState === 'complete') {
+      completeLoaderFlow();
+      return;
+    }
+
+    window.addEventListener('load', completeLoaderFlow, { once: true });
   }
 
   function bindEvents() {
@@ -505,6 +533,11 @@ async function finishLoaderSequence() {
     });
 
     elements.autoScrollButton?.addEventListener('click', async () => {
+      if (state.isAutoScrolling) {
+        stopAutoScroll(true);
+        return;
+      }
+
       await startAutoScroll({ ensureAudio: true });
     });
 
@@ -544,6 +577,10 @@ window.addEventListener(
   debounce(() => {
     initPetalEffects();
     updateMaxScrollableTop();
+
+    if (state.isAutoScrolling && state.maxScrollTop <= getCurrentScrollTop() + 1) {
+      stopAutoScroll(true);
+    }
   }, 220)
 );
 
@@ -556,6 +593,8 @@ window.addEventListener(
     initPetalEffects();
     initRevealOnScroll();
     updateAnimationPauseState();
+    updateMaxScrollableTop();
+    syncAutoScrollButtonState();
     initLoader();
     bindEvents();
   }
