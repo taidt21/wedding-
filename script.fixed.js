@@ -35,6 +35,16 @@
   const pageStartTime = Date.now();
   const root = document.body;
 
+  function normalizeAutoScrollSpeed(rawValue) {
+    const parsedValue = Number.parseFloat(rawValue);
+
+    if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+      return 28;
+    }
+
+    return parsedValue <= 1 ? parsedValue * 1000 : parsedValue;
+  }
+
   const config = {
     audioSrc: root.dataset.audioSrc || '',
     weddingDate: root.dataset.weddingDate || '2026-03-29T00:00:00',
@@ -42,7 +52,7 @@
     calendarYear: parseInt(root.dataset.calendarYear || '2026', 10),
     calendarHighlightDay: parseInt(root.dataset.calendarHighlightDay || '29', 10),
     calendarWeekStart: root.dataset.calendarWeekStart || 'monday',
-    autoScrollSpeed: parseFloat(root.dataset.autoScrollSpeed || '28'),
+    autoScrollSpeed: normalizeAutoScrollSpeed(root.dataset.autoScrollSpeed || '28'),
     loaderMinDuration: 2200,
     loaderFadeDuration: 600
   };
@@ -256,6 +266,8 @@ function autoScrollStep(timestamp) {
 }
 
 async function startAutoScroll({ ensureAudio = false } = {}) {
+  if (isReducedMotionEnabled()) return;
+
   if (ensureAudio && backgroundAudio?.paused) {
     const played = await playBackgroundAudio();
     if (!played) {
@@ -266,6 +278,11 @@ async function startAutoScroll({ ensureAudio = false } = {}) {
   if (state.isAutoScrolling) return;
 
   updateMaxScrollableTop();
+
+  if (state.maxScrollTop <= getCurrentScrollTop()) {
+    stopAutoScroll(true);
+    return;
+  }
 
   state.isAutoScrolling = true;
   state.lastAnimationFrameTime = 0;
@@ -464,6 +481,11 @@ async function startAutoScroll({ ensureAudio = false } = {}) {
 
 async function finishLoaderSequence() {
   await ensureAudioPlayback();
+
+  if (isReducedMotionEnabled()) {
+    setAutoScrollButtonVisible(true);
+    return;
+  }
 
   window.setTimeout(() => {
     startAutoScroll();
